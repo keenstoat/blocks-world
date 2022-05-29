@@ -1,14 +1,13 @@
 from copy import deepcopy
-import os
 from math import sqrt
-from runpy import run_path
 
+# consts para heuristicas
+HAMMING   = 0
+MANHATTAN = 1 
+EUCLIDEAN = 3
+CHEBYSHEV = 4
 
 class Nodo:
-    HAMMING   = 0
-    MANHATTAN = 1 
-    EUCLIDEAN = 3
-    CHEBYSHEV = 4
 
     name = "0"
     max_stacks = 5
@@ -108,13 +107,13 @@ class Nodo:
         return self.hamming_d
 
     def get_f(self, heuristic=None):
-        if heuristic == Nodo.MANHATTAN:
+        if heuristic == MANHATTAN:
             return self.cost + self.get_manhattan_d()
-        if heuristic == Nodo.HAMMING:
+        if heuristic == HAMMING:
             return self.cost + self.get_hamming_d()
-        if heuristic == Nodo.EUCLIDEAN:
+        if heuristic == EUCLIDEAN:
             return self.cost + self.get_euclidean_d()
-        if heuristic == Nodo.CHEBYSHEV:
+        if heuristic == CHEBYSHEV:
             return self.cost + self.get_chebyshev_d()
         # default a la mas rapida encontrada
         return self.cost + self.get_chebyshev_d()
@@ -157,102 +156,3 @@ class Nodo:
                 else:
                     print(f"[ ]", end="")
             print()
-
-
-platform = [
-    ["A", "B", "C"],
-    ["D", "E", "F"],
-    [],
-    []
-]
-
-goal_platform = [
-    [],
-    [],
-    ["A", "B", "C"],
-    ["D", "E", "F"]
-]
-
-# goal_platform = [
-#     [],
-#     [],
-#     ["C", "E", "A"],
-#     ["F", "B", "D"]
-# ]
-
-def get_new_root():
-    root = Nodo()
-    root.max_stacks = 4
-    root.max_stack_size = 3
-    root.platform = platform
-    root.goal_platform = goal_platform
-    return root
-
-
-def a_estrella(root, heuristic, max_iterations=None):
-
-    if heuristic is None:
-        print("Debe definirse una heuristica")
-        return None
-
-    visitados = []
-    cola = [root]
-    i = 0
-    while cola:
-        
-        i += 1
-        nodo = cola.pop(0)
-        nodo.iteration = i
-
-        if i % 500 == 0:
-            print(f"Iteraciones: {i} - {nodo.name}")
-
-        if nodo.is_goal():
-            nodo.print_platform()
-            print(f"Iteraciones: {i} - {nodo.name}")
-            return nodo
-
-        if max_iterations and i >= max_iterations:
-            print(f"Iteraciones: {i} - {nodo.name}")
-            return nodo
-
-        visitados.append(nodo.platform)
-
-        def insert_in_order(nodo):
-            inserted = False
-            for pos in range(len(cola)):
-                if cola[pos].get_f(heuristic) > nodo.get_f(heuristic):
-                    cola.insert(pos, nodo)
-                    inserted = True
-                    break
-            if not inserted: cola.append(nodo)
-
-        nodo.expand_children()
-        for child in nodo.get_children():
-            if child.platform not in visitados:
-                insert_in_order(child)
-
-    return None
-
-def get_solucion(root, nodo_solucion):
-    ruta = nodo_solucion.name.split(".")
-    ruta.pop(0)
-    nodo_actual = root
-    yield nodo_actual
-    for segmento in ruta:
-        nodo_actual = nodo_actual.get_children()[int(segmento)]
-        yield nodo_actual
-    
-
-print("\nUsando Chebyshev")
-root = get_new_root()
-nodo_solucion = a_estrella(root, heuristic=Nodo.CHEBYSHEV)
-# print("\nUsando Manhattan")
-# a_estrella(get_new_root(), heuristic=Nodo.MANHATTAN)
-# print("\nUsando Euclidean")
-# a_estrella(get_new_root(), heuristic=Nodo.EUCLIDEAN)
-# print("\nUsando Hamming")
-# a_estrella(get_new_root(), heuristic=Nodo.HAMMING)
-print("-"*30)
-for nodo in get_solucion(root, nodo_solucion):
-    nodo.print_platform()
