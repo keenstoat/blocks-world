@@ -1,15 +1,15 @@
 from copy import deepcopy
 import os
 from math import sqrt
+from runpy import run_path
 
-class Node:
-    # heuristic constants
-    HAMMING = 0
+
+class Nodo:
+    HAMMING   = 0
     MANHATTAN = 1 
     EUCLIDEAN = 3
     CHEBYSHEV = 4
-     
-    
+
     name = "0"
     max_stacks = 5
     max_stack_size = 3
@@ -20,6 +20,7 @@ class Node:
     origin_stack_index = None
     dest_stack_index = None
     cost = 0
+    iteration = None
     hamming_d = None
     manhattan_d = None
     euclidean_d = None
@@ -35,7 +36,7 @@ class Node:
             self.parent = parent
             self.cost = parent.cost + 1
         
-    def get_block_value(self, stack_index, block_index, platform=None):
+    def get_block(self, stack_index, block_index, platform=None):
         if not platform: 
             platform = self.platform
         stack = platform[stack_index]
@@ -48,11 +49,11 @@ class Node:
             return self.chebyshev_d
         distance = 0
         for stack_index, stack in enumerate(self.platform):
-            for block_index, block in enumerate(stack):
-                block_test = self.get_block_value(stack_index, block_index) 
+            for block_index in range(len(stack)):
+                test_block = self.get_block(stack_index, block_index) 
                 for goal_stack_index, goal_stack in enumerate(self.goal_platform):
-                    if block_test in goal_stack:
-                        goal_block_index = goal_stack.index(block_test)
+                    if test_block in goal_stack:
+                        goal_block_index = goal_stack.index(test_block)
                         distance += max(abs(goal_block_index - block_index), abs(goal_stack_index - stack_index))
                         break
                 # if block_test not in the goal_platform, should exit
@@ -64,27 +65,27 @@ class Node:
             return self.euclidean_d
         distance = 0
         for stack_index, stack in enumerate(self.platform):
-            for block_index, block in enumerate(stack):
-                block_test = self.get_block_value(stack_index, block_index) 
+            for block_index in range(len(stack)):
+                test_block = self.get_block(stack_index, block_index) 
                 for goal_stack_index, goal_stack in enumerate(self.goal_platform):
-                    if block_test in goal_stack:
-                        goal_block_index = goal_stack.index(block_test)
+                    if test_block in goal_stack:
+                        goal_block_index = goal_stack.index(test_block)
                         distance += sqrt((goal_block_index - block_index)**2 + (goal_stack_index - stack_index)**2)
                         break
                 # if block_test not in the goal_platform, should exit
-        self.manhattan_d = distance
-        return self.manhattan_d
+        self.euclidean_d = distance
+        return self.euclidean_d
 
     def get_manhattan_d(self):
         if self.manhattan_d:
             return self.manhattan_d
         distance = 0
         for stack_index, stack in enumerate(self.platform):
-            for block_index, block in enumerate(stack):
-                block_test = self.get_block_value(stack_index, block_index) 
+            for block_index in range(len(stack)):
+                test_block = self.get_block(stack_index, block_index) 
                 for goal_stack_index, goal_stack in enumerate(self.goal_platform):
-                    if block_test in goal_stack:
-                        goal_block_index = goal_stack.index(block_test)
+                    if test_block in goal_stack:
+                        goal_block_index = goal_stack.index(test_block)
                         distance += abs(goal_block_index - block_index) + abs(goal_stack_index - stack_index)
                         break
                 # if block_test not in the goal_platform, should exit
@@ -96,30 +97,31 @@ class Node:
         if self.hamming_d: 
             return self.hamming_d
         distance = 0
-        for stack_index in range(self.max_stacks):
-            for block_index in range(self.max_stack_size):
-                block_test = self.get_block_value(stack_index, block_index) 
-                block_goal = self.get_block_value(stack_index, block_index, self.goal_platform)
-                if block_test is not block_goal:
+
+        for stack_index, stack in enumerate(self.platform):
+            for block_index, block in enumerate(stack):
+                goal_block = self.get_block(stack_index, block_index, self.goal_platform)
+                if block is not goal_block:
                     distance += 1
+
         self.hamming_d = distance
         return self.hamming_d
 
-    def get_f(self, h=None):
-        if h is None:
-            return self.cost
-        if h == Node.MANHATTAN:
+    def get_f(self, heuristic=None):
+        if heuristic == Nodo.MANHATTAN:
             return self.cost + self.get_manhattan_d()
-        if h == Node.HAMMING:
+        if heuristic == Nodo.HAMMING:
             return self.cost + self.get_hamming_d()
-        if h == Node.EUCLIDEAN:
+        if heuristic == Nodo.EUCLIDEAN:
             return self.cost + self.get_euclidean_d()
-        if h == Node.CHEBYSHEV:
+        if heuristic == Nodo.CHEBYSHEV:
             return self.cost + self.get_chebyshev_d()
+        # default a la mas rapida encontrada
+        return self.cost + self.get_chebyshev_d()
 
     def add_child(self, origin_stack_index, dest_stack_index):
 
-        child_node = Node(self)
+        child_node = Nodo(self)
         
         cloned_platform = deepcopy(self.platform)
         cloned_platform[dest_stack_index].append(cloned_platform[origin_stack_index].pop())
@@ -143,7 +145,7 @@ class Node:
                 self.add_child(origin_index, dest_index)
 
     def is_goal(self):
-        return self.get_hamming_d() == 0
+        return self.platform == self.goal_platform
 
     def print_platform(self):
         print(f"name={self.name} | cost={self.cost} | h={self.get_hamming_d()}")
@@ -156,16 +158,6 @@ class Node:
                     print(f"[ ]", end="")
             print()
 
-    def get_graphviz_label(self):
-        pass
-        # header = f"{{h={str(self.get_h())}| i={self.iteration} }}"
-        # labelList = [header]
-        # for row in self.tablero:
-        #     labelList.append("{" + "|".join([str(row[0]),str(row[1]),str(row[2])]) + "}")
-
-        # mark_solucion = ", color=green" if self.is_solucion() else ""
-        # label = f'"{self.name}" [label="{{ {"|".join(labelList)} }}" {mark_solucion}];\n'
-        # return label
 
 platform = [
     ["A", "B", "C"],
@@ -181,7 +173,6 @@ goal_platform = [
     ["D", "E", "F"]
 ]
 
-
 # goal_platform = [
 #     [],
 #     [],
@@ -190,7 +181,7 @@ goal_platform = [
 # ]
 
 def get_new_root():
-    root = Node()
+    root = Nodo()
     root.max_stacks = 4
     root.max_stack_size = 3
     root.platform = platform
@@ -198,7 +189,11 @@ def get_new_root():
     return root
 
 
-def a_estrella(root, h=None, max_iterations=None):
+def a_estrella(root, heuristic, max_iterations=None):
+
+    if heuristic is None:
+        print("Debe definirse una heuristica")
+        return None
 
     visitados = []
     cola = [root]
@@ -207,7 +202,8 @@ def a_estrella(root, h=None, max_iterations=None):
         
         i += 1
         nodo = cola.pop(0)
-        # nodo.iteration = i
+        nodo.iteration = i
+
         if i % 500 == 0:
             print(f"Iteraciones: {i} - {nodo.name}")
 
@@ -225,37 +221,38 @@ def a_estrella(root, h=None, max_iterations=None):
         def insert_in_order(nodo):
             inserted = False
             for pos in range(len(cola)):
-                if cola[pos].get_f(h) > nodo.get_f(h):
+                if cola[pos].get_f(heuristic) > nodo.get_f(heuristic):
                     cola.insert(pos, nodo)
                     inserted = True
                     break
             if not inserted: cola.append(nodo)
 
         nodo.expand_children()
-        # print(f"children: {[x.name for x in nodo.children()]}")
         for child in nodo.get_children():
             if child.platform not in visitados:
                 insert_in_order(child)
 
     return None
 
+def get_solucion(root, nodo_solucion):
+    ruta = nodo_solucion.name.split(".")
+    ruta.pop(0)
+    nodo_actual = root
+    yield nodo_actual
+    for segmento in ruta:
+        nodo_actual = nodo_actual.get_children()[int(segmento)]
+        yield nodo_actual
+    
 
 print("\nUsando Chebyshev")
-a_estrella(get_new_root(), h=Node.CHEBYSHEV)
-print("\nUsando Manhattan")
-a_estrella(get_new_root(), h=Node.MANHATTAN)
-print("\nUsando Euclidean")
-a_estrella(get_new_root(), h=Node.EUCLIDEAN)
-print("\nUsando Hamming")
-a_estrella(get_new_root(), h=Node.HAMMING)
-
-
-# root.expand_children()
-
-# print("------------ ROOT ---------- ")
-# root.print_platform()
-# for child in root.children:
-#     print("-"*30)
-#     child.print_platform()
-
-
+root = get_new_root()
+nodo_solucion = a_estrella(root, heuristic=Nodo.CHEBYSHEV)
+# print("\nUsando Manhattan")
+# a_estrella(get_new_root(), heuristic=Nodo.MANHATTAN)
+# print("\nUsando Euclidean")
+# a_estrella(get_new_root(), heuristic=Nodo.EUCLIDEAN)
+# print("\nUsando Hamming")
+# a_estrella(get_new_root(), heuristic=Nodo.HAMMING)
+print("-"*30)
+for nodo in get_solucion(root, nodo_solucion):
+    nodo.print_platform()
