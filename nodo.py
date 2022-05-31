@@ -10,8 +10,8 @@ CHEBYSHEV = 4
 class Nodo:
 
     name = "0"
-    max_stacks = 5
-    max_stack_size = 3
+    max_stacks = 0
+    max_stack_height = 0
     platform = None
     goal_platform = None
     parent = None
@@ -30,7 +30,7 @@ class Nodo:
         if parent:
             self.name = f"{parent.name}.{len(parent.children)}"
             self.max_stacks = parent.max_stacks
-            self.max_stack_size = parent.max_stack_size
+            self.max_stack_height = parent.max_stack_height
             self.goal_platform = parent.goal_platform
             self.parent = parent
             self.cost = parent.cost + 1
@@ -139,7 +139,7 @@ class Nodo:
             if not origin_stack: continue
             for dest_index, dest_stack in enumerate(self.platform):
                 if origin_index == dest_index: continue
-                if len(dest_stack) == self.max_stack_size: continue
+                if len(dest_stack) == self.max_stack_height: continue
                 
                 self.add_child(origin_index, dest_index)
 
@@ -149,7 +149,7 @@ class Nodo:
     def print_platform(self):
         print(f"name={self.name} | cost={self.cost} | h={self.get_hamming_d()}")
         print(f"ori={self.origin_stack_index} | dest={self.dest_stack_index}")
-        for row_index in range(self.max_stack_size - 1, -1, -1):
+        for row_index in range(self.max_stack_height - 1, -1, -1):
             for stack in self.platform:
                 if row_index <= len(stack) - 1:
                     print(f"[{stack[row_index]}]", end="")

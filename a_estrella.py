@@ -1,19 +1,19 @@
 from nodo import Nodo
 from nodo import CHEBYSHEV, EUCLIDEAN, MANHATTAN, HAMMING
 
-platform = [
-    ["A", "B", "C"],
-    ["D", "E", "F"],
-    [],
-    []
-]
+# platform = [
+#     ["A", "B", "C"],
+#     ["D", "E", "F"],
+#     [],
+#     []
+# ]
 
-goal_platform = [
-    [],
-    [],
-    ["A", "B", "C"],
-    ["D", "E", "F"]
-]
+# goal_platform = [
+#     [],
+#     [],
+#     ["A", "B", "C"],
+#     ["D", "E", "F"]
+# ]
 
 # goal_platform = [
 #     [],
@@ -22,20 +22,21 @@ goal_platform = [
 #     ["F", "B", "D"]
 # ]
 
-def get_new_root():
+# class AEstrella:
+
+def get_new_root(init_platform, goal_platform, max_stack_height):
+    if len(init_platform) != len(goal_platform):
+        print("Initial and Goal platforms have different sizes")
+        return None
     root = Nodo()
-    root.max_stacks = 4
-    root.max_stack_size = 3
-    root.platform = platform
+    root.max_stacks = len(init_platform)
+    root.max_stack_height = max_stack_height
+    root.platform = init_platform
     root.goal_platform = goal_platform
     return root
 
 
-def a_estrella(root, heuristic, max_iterations=None):
-
-    if heuristic is None:
-        print("Debe definirse una heuristica")
-        return None
+def a_estrella(root, heuristic=CHEBYSHEV, max_iterations=None):
 
     visitados = []
     cola = [root]
@@ -46,12 +47,12 @@ def a_estrella(root, heuristic, max_iterations=None):
         nodo = cola.pop(0)
         nodo.iteration = i
 
-        if i % 500 == 0:
-            print(f"Iteraciones: {i} - {nodo.name}")
+        # if i % 500 == 0:
+        #     print(f"Iteraciones: {i} - {nodo.name}")
 
         if nodo.is_goal():
-            nodo.print_platform()
-            print(f"Iteraciones: {i} - {nodo.name}")
+            # nodo.print_platform()
+            # print(f"Iteraciones: {i} - {nodo.name}")
             return nodo
 
         if max_iterations and i >= max_iterations:
@@ -76,7 +77,7 @@ def a_estrella(root, heuristic, max_iterations=None):
 
     return None
 
-def get_solucion(root, nodo_solucion):
+def get_ruta_solucion(root, nodo_solucion):
     ruta = nodo_solucion.name.split(".")
     ruta.pop(0)
     nodo_actual = root
@@ -84,17 +85,17 @@ def get_solucion(root, nodo_solucion):
     for segmento in ruta:
         nodo_actual = nodo_actual.get_children()[int(segmento)]
         yield nodo_actual
-    
 
-print("\nUsando Chebyshev")
-root = get_new_root()
-nodo_solucion = a_estrella(root, heuristic=CHEBYSHEV)
+
+# print("\nUsando Chebyshev")
+# root = get_new_root()
+# nodo_solucion = a_estrella(root, heuristic=CHEBYSHEV)
 # print("\nUsando Manhattan")
 # a_estrella(get_new_root(), heuristic=MANHATTAN)
 # print("\nUsando Euclidean")
 # a_estrella(get_new_root(), heuristic=EUCLIDEAN)
 # print("\nUsando Hamming")
 # a_estrella(get_new_root(), heuristic=HAMMING)
-print("-"*30)
-for nodo in get_solucion(root, nodo_solucion):
-    nodo.print_platform()
+# print("-"*30)
+# for nodo in get_solucion(root, nodo_solucion):
+#     nodo.print_platform()
