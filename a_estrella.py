@@ -1,29 +1,12 @@
 from nodo import Nodo
 from nodo import CHEBYSHEV, EUCLIDEAN, MANHATTAN, HAMMING
 
-# platform = [
-#     ["A", "B", "C"],
-#     ["D", "E", "F"],
-#     [],
-#     []
-# ]
+run_status = True
 
-# goal_platform = [
-#     [],
-#     [],
-#     ["A", "B", "C"],
-#     ["D", "E", "F"]
-# ]
-
-# goal_platform = [
-#     [],
-#     [],
-#     ["C", "E", "A"],
-#     ["F", "B", "D"]
-# ]
-
-# class AEstrella:
-
+def set_run_status(status):
+    global run_status
+    run_status = status
+    
 def get_new_root(init_platform, goal_platform, max_stack_height):
     if len(init_platform) != len(goal_platform):
         print("Initial and Goal platforms have different sizes")
@@ -35,20 +18,16 @@ def get_new_root(init_platform, goal_platform, max_stack_height):
     root.goal_platform = goal_platform
     return root
 
-
-def a_estrella(root, heuristic=CHEBYSHEV, max_iterations=None):
+def a_estrella(root, heuristic=CHEBYSHEV, update_function=None, max_iterations=None):
 
     visitados = []
     cola = [root]
     i = 0
-    while cola:
-        
+    children_expanded = 0
+    while cola and run_status:
         i += 1
         nodo = cola.pop(0)
         nodo.iteration = i
-
-        # if i % 500 == 0:
-        #     print(f"Iteraciones: {i} - {nodo.name}")
 
         if nodo.is_goal():
             # nodo.print_platform()
@@ -71,13 +50,21 @@ def a_estrella(root, heuristic=CHEBYSHEV, max_iterations=None):
             if not inserted: cola.append(nodo)
 
         nodo.expand_children()
+        children_expanded += len(nodo.children)
         for child in nodo.get_children():
             if child.platform not in visitados:
                 insert_in_order(child)
 
+        if update_function:
+            # print(f"Iteraciones: {i} - {nodo.name}")
+            update_function(i, len(cola), len(visitados), children_expanded)
+
+
+    if update_function:
+        update_function(i, len(cola), len(visitados), children_expanded)
     return None
 
-def get_ruta_solucion(root, nodo_solucion):
+def get_ruta_solucion( root, nodo_solucion):
     ruta = nodo_solucion.name.split(".")
     ruta.pop(0)
     nodo_actual = root

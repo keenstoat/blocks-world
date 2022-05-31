@@ -2,6 +2,7 @@ import tkinter as tk
 import time
 import os
 import platform
+from concurrent.futures import ThreadPoolExecutor
 
 import a_estrella
 
@@ -13,7 +14,7 @@ block_height = 40
 max_stacks = 5
 max_stack_height = 5
 
-
+# event handlers para drag and drop
 def drag_start(event):
     block = event.widget
     block.start_x = event.x
@@ -70,6 +71,7 @@ def drag_release(event):
                 if block_to_collapse:
                     block_to_collapse[0].grid(row=i + 1, column=block.start_column)
 
+# init de bloques y botones
 def create_place_holders(frame):
     empty_img = tk.PhotoImage()
     for stack_index in range(max_stacks):
@@ -106,7 +108,7 @@ def create_platform(frame):
             block.bind("<B1-Motion>", drag_motion)
             block.bind("<ButtonRelease-1>", drag_release)
 
-def add_solve_buttons():
+def add_run_buttons():
     font = ("Arial", 10, "bold")
 
     hamming_button = tk.Button(bottom_frame, text="Hamming", font=font, padx=10, pady=10)
@@ -125,6 +127,11 @@ def add_solve_buttons():
     chebyshev_button["command"] = lambda: solve_a_estrella(chebyshev_button.cget('text'), a_estrella.CHEBYSHEV)
     chebyshev_button.grid(row=0, column=3)
 
+    stop_button = tk.Button(bottom_frame, text="STOP", font=font, padx=10, pady=10)
+    stop_button["command"] = lambda: set_run_buttons_state(False)
+    stop_button.grid(row=0, column=5)
+
+# integracion con ejecucion de solucion
 def get_platform_from_frame(frame):
     platform = []
     for column in range(max_stacks):
@@ -154,34 +161,77 @@ def animate_block_move(origin_column, dest_column):
             dest_row = row
             break
     
-    steps = 20
-    x_step = (dest_column - origin_column) * block_width // steps
-    y_step = (dest_row - origin_row) * block_height // steps
-    
-    while steps >= 0:
-        x = block.winfo_x() + x_step
-        y = block.winfo_y() + y_step
-        block.place(x=x, y=y)
+    delay = 50/1000
+    # move block up
+    for row in range(origin_row, -1, -1):
+        block.grid(row=row, column=origin_column)
         window.update()
-        time.sleep(10/1000)
-        steps -= 1
-    block.grid(row=dest_row, column=dest_column)
+        time.sleep(delay)
+    # move block side ways
+    step = (dest_column - origin_column)
+    step //= abs(step)
+    for col in range(origin_column, dest_column + step, step):
+        block.grid(row=0, column=col)
+        window.update()
+        time.sleep(delay)
+    # move block down
+    for row in range(0, dest_row+1):
+        block.grid(row=row, column=dest_column)
+        window.update()
+        time.sleep(delay)
+
+def set_run_buttons_state(is_running):
+
+    if is_running:
+        a_estrella.set_run_status(True)
+        for button in bottom_frame.grid_slaves():
+            if button['text'] == 'STOP':
+                button['state'] = 'normal'
+            else:
+                button['state'] = 'disable'
+    else:
+        a_estrella.set_run_status(False)
+        for button in bottom_frame.grid_slaves():
+            if button['text'] == 'STOP':
+                button['state'] = 'disable'
+            else:
+                button['state'] = 'normal'
+
+
+def update_run_info(i, cola_length, visitados_length, children_expanded):
     
+    info_label['text'] = (
+        f"Ciclos:           {i}\n"
+        f"Nodos pendientes: {cola_length}\n"
+        f"Nodos visitados:  {visitados_length}\n"
+        f"Branching factor: {(children_expanded/visitados_length):.2f}\n"
+    )
 
 def solve_a_estrella(heuristic_name, heuristic_value):
- 
-    title = f"======= Solving with {heuristic_name} =============="
-    print(title)
-    init_platform = get_platform_from_frame(platform_frame)
-    goal_platform = get_platform_from_frame(goal_frame)
-    root = a_estrella.get_new_root(init_platform, goal_platform, max_stack_height)
-    nodo_solucion = a_estrella.a_estrella(root, heuristic_value)
+    
+    def run_in_thread():
+        set_run_buttons_state(True)
 
-    for nodo_transicion in a_estrella.get_ruta_solucion(root, nodo_solucion):
-        if not nodo_transicion.parent: continue
-        animate_block_move(nodo_transicion.origin_stack_index, nodo_transicion.dest_stack_index)
+        title = f"======= Solving with {heuristic_name} =============="
+        print(title)
+        heuristic_label['text'] = f"f(n) = {heuristic_name}"
 
-    print("="*len(title))
+        init_platform = get_platform_from_frame(platform_frame)
+        goal_platform = get_platform_from_frame(goal_frame)
+        
+        root = a_estrella.get_new_root(init_platform, goal_platform, max_stack_height)
+        nodo_solucion = a_estrella.a_estrella(root, heuristic_value, update_function=update_run_info)
+
+        for nodo_transicion in a_estrella.get_ruta_solucion(root, nodo_solucion):
+            if not nodo_transicion.parent: continue
+            animate_block_move(nodo_transicion.origin_stack_index, nodo_transicion.dest_stack_index)
+        
+        set_run_buttons_state(False)
+        print("="*len(title))
+    
+    executor = ThreadPoolExecutor(5)
+    executor.submit(run_in_thread)
+    
 
 
 window = tk.Tk()
@@ -191,33 +241,36 @@ frame_width = (block_width + block_border * 2) * (max_stacks + 1)
 frame_height = (block_height + block_border * 2) * (max_stack_height + 1)
 
 # TOP frame
-top_frame = tk.Frame(window, width=frame_width*3, height=50, highlightbackground="blue", highlightthickness=2)
+top_frame = tk.Frame(window, width=frame_width*3, height=50)
 top_frame.grid(row=0, columnspan=3) 
 
 # Platform frame
-platform_frame = tk.Frame(window, width=frame_width, height=frame_height, \
-    highlightbackground="blue", highlightthickness=2)
+platform_frame = tk.Frame(window, width=frame_width, height=frame_height)
 platform_frame.grid(row=1, column=0) 
 platform_frame.grid_propagate(0)
 
-# middle frame
-blocks_frame = tk.Frame(window, width=frame_width, height=frame_height, \
-    highlightbackground="blue", highlightthickness=2)
-blocks_frame.grid(row=1, column=1)
+# INFO frame
+info_frame = tk.Frame(window, width=frame_width, height=frame_height)
+info_frame.grid(row=1, column=1)
+info_frame.grid_propagate(0)
+
+heuristic_label = tk.Label(info_frame, text="- No info -", font = ("Arial", 15, "bold"))
+heuristic_label.grid(row=0, column=0)
+info_label = tk.Label(info_frame, text="- No info -", font = ("Arial", 10, "bold"), anchor="e", justify=tk.LEFT)
+info_label.grid(row=1, column=0)
 
 # GOAL frame
-goal_frame = tk.Frame(window, width=frame_width, height=frame_height, \
-    highlightbackground="blue", highlightthickness=2)
+goal_frame = tk.Frame(window, width=frame_width, height=frame_height)
 goal_frame.grid(row=1, column=2) 
 goal_frame.grid_propagate(0)
 
 # Buttons frame
-bottom_frame = tk.Frame(window, width=frame_width*3, height=50, highlightbackground="blue", highlightthickness=2)
+bottom_frame = tk.Frame(window, width=frame_width*3, height=50)
 bottom_frame.grid(row=2, columnspan=3) 
 bottom_frame.grid_propagate(0)
 
 # Buttons
-add_solve_buttons()
+add_run_buttons()
 
 create_place_holders(platform_frame)
 create_platform(platform_frame)
