@@ -6,16 +6,19 @@ from concurrent.futures import ThreadPoolExecutor
 
 import a_estrella
 
-block_pad = 0
 block_border = 1
-block_width = 40
-block_height = 40
+block_width = 30
+block_height = 30
 
 max_stacks = 5
 max_stack_height = 5
 
+thread_pool = ThreadPoolExecutor(5)
+thread_is_running = False
+
 # event handlers para drag and drop
 def drag_start(event):
+    if thread_is_running: return
     block = event.widget
     block.start_x = event.x
     block.start_y = event.y
@@ -23,12 +26,14 @@ def drag_start(event):
     block.start_row = block.grid_info()['row']
 
 def drag_motion(event):
+    if thread_is_running: return
     block = event.widget
     x = block.winfo_x() - block.start_x + event.x
     y = block.winfo_y() - block.start_y + event.y
     block.place(x=x, y=y)
 
 def drag_release(event):
+    if thread_is_running: return
     block = event.widget
     #get x,y of resting place
     x = block.winfo_x() - block.start_x + event.x
@@ -128,7 +133,8 @@ def add_run_buttons():
     chebyshev_button.grid(row=0, column=3)
 
     stop_button = tk.Button(bottom_frame, text="STOP", font=font, padx=10, pady=10)
-    stop_button["command"] = lambda: set_run_buttons_state(False)
+    stop_button["command"] = lambda: a_estrella.set_run_status(False)
+    stop_button['state'] = tk.DISABLED
     stop_button.grid(row=0, column=5)
 
 # integracion con ejecucion de solucion
@@ -180,38 +186,35 @@ def animate_block_move(origin_column, dest_column):
         window.update()
         time.sleep(delay)
 
-def set_run_buttons_state(is_running):
-
-    if is_running:
-        a_estrella.set_run_status(True)
-        for button in bottom_frame.grid_slaves():
-            if button['text'] == 'STOP':
-                button['state'] = 'normal'
-            else:
-                button['state'] = 'disable'
+def set_run_buttons_state(run_button_state):
+    global thread_is_running
+    if run_button_state == tk.DISABLED:
+        stop_button_state = tk.NORMAL
+        thread_is_running = True
     else:
-        a_estrella.set_run_status(False)
-        for button in bottom_frame.grid_slaves():
-            if button['text'] == 'STOP':
-                button['state'] = 'disable'
-            else:
-                button['state'] = 'normal'
-
-
-def update_run_info(i, cola_length, visitados_length, children_expanded):
+        run_button_state = tk.NORMAL
+        stop_button_state = tk.DISABLED
+        thread_is_running = False
     
-    info_label['text'] = (
-        f"Ciclos:           {i}\n"
-        f"Nodos pendientes: {cola_length}\n"
-        f"Nodos visitados:  {visitados_length}\n"
-        f"Branching factor: {(children_expanded/visitados_length):.2f}\n"
-    )
+    for button in bottom_frame.grid_slaves():
+        if button['text'] == 'STOP':
+            button['state'] = stop_button_state
+        else:
+            button['state'] = run_button_state
+
+
+def update_run_info(run_info_dict):
+    
+    info_text = ""
+    for key, val in run_info_dict.items():
+        info_text += f"{key}: {val}\n"
+    info_label['text'] = info_text
 
 def solve_a_estrella(heuristic_name, heuristic_value):
     
     def run_in_thread():
-        set_run_buttons_state(True)
-
+        set_run_buttons_state(tk.DISABLED)
+        a_estrella.set_run_status(True)
         title = f"======= Solving with {heuristic_name} =============="
         print(title)
         heuristic_label['text'] = f"f(n) = {heuristic_name}"
@@ -220,17 +223,17 @@ def solve_a_estrella(heuristic_name, heuristic_value):
         goal_platform = get_platform_from_frame(goal_frame)
         
         root = a_estrella.get_new_root(init_platform, goal_platform, max_stack_height)
-        nodo_solucion = a_estrella.a_estrella(root, heuristic_value, update_function=update_run_info)
-
-        for nodo_transicion in a_estrella.get_ruta_solucion(root, nodo_solucion):
-            if not nodo_transicion.parent: continue
-            animate_block_move(nodo_transicion.origin_stack_index, nodo_transicion.dest_stack_index)
+        nodo_solucion = a_estrella.a_estrella(root, heuristic_value, callback=update_run_info)
+        # nodo_solucion puede ser None si a_estrella fue detenido prematuramente
+        if nodo_solucion:
+            for nodo in a_estrella.get_ruta_solucion(root, nodo_solucion):
+                if not nodo.parent: continue
+                animate_block_move(nodo.origin_stack_index, nodo.dest_stack_index)
         
-        set_run_buttons_state(False)
+        set_run_buttons_state(tk.NORMAL)
         print("="*len(title))
     
-    executor = ThreadPoolExecutor(5)
-    executor.submit(run_in_thread)
+    thread_pool.submit(run_in_thread)
     
 
 
