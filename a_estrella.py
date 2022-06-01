@@ -1,5 +1,6 @@
 from nodo import Nodo
 from nodo import CHEBYSHEV, EUCLIDEAN, MANHATTAN, HAMMING
+from datetime import datetime
 
 run_status = True
 
@@ -24,9 +25,11 @@ def a_estrella(root, heuristic=CHEBYSHEV, callback=None, max_iterations=None):
     cola = [root]
     i = 0
     children_expanded = 0
+    t_start = datetime.now()
     def get_info_dict():
         return {
             "Ciclos": i, 
+            "Tiempo": f"{datetime.now() - t_start}",
             "Nodos en cola": len(cola), 
             "Nodos visitados": len(visitados), 
             "Factor ramificacion": f"{(children_expanded/len(visitados)):.2f}"
