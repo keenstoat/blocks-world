@@ -1,19 +1,20 @@
 import tkinter as tk
 import time
-import os
-import platform
 from concurrent.futures import ThreadPoolExecutor
-
 import a_estrella
 
 block_border = 1
-block_width = 30
-block_height = 30
+block_width = 40
+block_height = 40
 
-max_stacks = 5
-max_stack_height = 5
+max_stacks = 3
+max_stack_height = 3
+max_blocks = 5
 
-thread_pool = ThreadPoolExecutor(5)
+platform_frame = None
+goal_frame = None
+
+thread_pool = ThreadPoolExecutor(1)
 thread_is_running = False
 
 # event handlers para drag and drop
@@ -39,8 +40,17 @@ def drag_release(event):
     x = block.winfo_x() - block.start_x + event.x
     y = block.winfo_y() - block.start_y + event.y
     # get col, row of resting place
-    column = x // block_width if x >= 0 else 0
-    row = y // block_height if y >= 0 else 0
+    column = x // block_width 
+    if column < 0:
+        column = 0
+    elif column > max_stacks - 1:
+        column = max_stacks -1
+
+    row = y // block_height 
+    if row < 0:
+        row = 0
+    elif row > max_stack_height - 1:
+        row = max_stack_height - 1
     
     parent_frame = block.master
     # check if blocks can be shifted up to make room for new block
@@ -77,6 +87,38 @@ def drag_release(event):
                     block_to_collapse[0].grid(row=i + 1, column=block.start_column)
 
 # init de bloques y botones
+def configure_platform(max_stacks_input, max_stack_height_input, max_blocks_input):
+    global max_stacks, max_stack_height, max_blocks
+    max_stacks = int(max_stacks_input)
+    max_stack_height = int(max_stack_height_input)
+    max_blocks = int(max_blocks_input)
+
+    global platform_frame, goal_frame
+
+    frame_width = (block_width + block_border * 2) * (max_stacks + 1)
+    frame_height = (block_height + block_border * 2) * (max_stack_height + 1)
+
+    if platform_frame:
+        platform_frame.destroy()
+     
+    platform_frame = tk.Frame(platform_frame_container, width=frame_width, height=frame_height,\
+    highlightbackground="grey", highlightthickness=1 )
+    platform_frame.grid(row=0, column=0) 
+    platform_frame.grid_propagate(0)
+
+    if goal_frame:
+        goal_frame.destroy()
+
+    goal_frame = tk.Frame(goal_frame_container, width=frame_width, height=frame_height,\
+        highlightbackground="grey", highlightthickness=1 )
+    goal_frame.grid(row=0, column=0) 
+    goal_frame.grid_propagate(0)
+    
+    create_place_holders(platform_frame)
+    create_platform(platform_frame)
+    create_place_holders(goal_frame)
+    create_platform(goal_frame)
+
 def create_place_holders(frame):
     empty_img = tk.PhotoImage()
     for stack_index in range(max_stacks):
@@ -94,10 +136,12 @@ def create_platform(frame):
     box_image = Image.open("block.png").resize((block_width+10, block_height+10))
     box_image = ImageTk.PhotoImage(box_image)
 
+    added_blocks = 0
     for stack_index in range(max_stacks):
         for block_index in range(max_stack_height - 1, -1, -1):
 
-            if block_index < max_stack_height - 2 : continue # only to limit blocks
+            if added_blocks >= max_blocks:
+                return
             
             block = tk.Label(frame, text=chr(block_char_int), font=("Arial", 15, "bold"), \
                 image=box_image, compound=tk.CENTER, \
@@ -112,6 +156,24 @@ def create_platform(frame):
             block.bind("<Button-1>", drag_start)
             block.bind("<B1-Motion>", drag_motion)
             block.bind("<ButtonRelease-1>", drag_release)
+            added_blocks += 1
+
+def add_config_platform_buttons():
+    tk.Label(top_frame, text="Ancho: ").grid(row=0, column=0)
+    max_stacks_input = tk.Spinbox(top_frame, from_=3, to=6)
+    max_stacks_input.grid(row=0, column=1)
+
+    tk.Label(top_frame, text="Alto: ").grid(row=1, column=0)
+    max_stack_height_input = tk.Spinbox(top_frame, from_=3, to=6)
+    max_stack_height_input.grid(row=1, column=1)
+
+    tk.Label(top_frame, text="Cajas: ").grid(row=2, column=0)
+    max_blocks_input = tk.Spinbox(top_frame, from_=3, to=26)
+    max_blocks_input.grid(row=2, column=1)
+
+    set_platform_button = tk.Button(top_frame, text="Configurar\nPlataforma", font = ("Arial", 10, "bold"), padx=10, pady=10)
+    set_platform_button["command"] = lambda: configure_platform(max_stacks_input.get(), max_stack_height_input.get(), max_blocks_input.get())
+    set_platform_button.grid(row=0, column=2, rowspan=3)
 
 def add_run_buttons():
     font = ("Arial", 10, "bold")
@@ -202,12 +264,11 @@ def set_run_buttons_state(run_button_state):
         else:
             button['state'] = run_button_state
 
-
 def update_run_info(run_info_dict):
     
     info_text = ""
     for key, val in run_info_dict.items():
-        info_text += f"{key}: {val}\n"
+        info_text += f"{key}: {val}\n\n"
     info_label['text'] = info_text
 
 def solve_a_estrella(heuristic_name, heuristic_value):
@@ -224,6 +285,7 @@ def solve_a_estrella(heuristic_name, heuristic_value):
         
         root = a_estrella.get_new_root(init_platform, goal_platform, max_stack_height)
         nodo_solucion = a_estrella.a_estrella(root, heuristic_value, callback=update_run_info)
+
         # nodo_solucion puede ser None si a_estrella fue detenido prematuramente
         if nodo_solucion:
             for nodo in a_estrella.get_ruta_solucion(root, nodo_solucion):
@@ -236,24 +298,32 @@ def solve_a_estrella(heuristic_name, heuristic_value):
     thread_pool.submit(run_in_thread)
     
 
+def close_window():
+    if thread_is_running:
+        a_estrella.set_run_status(False)
+        print("search stopped!")
+    else:
+        print("window destroyed!")
+        window.destroy()
 
 window = tk.Tk()
 window.title("Blocks World")
+window.protocol("WM_DELETE_WINDOW", close_window)
 
-frame_width = (block_width + block_border * 2) * (max_stacks + 1)
-frame_height = (block_height + block_border * 2) * (max_stack_height + 1)
+frame_max_width = 300
+frame_max_height = 300
 
 # TOP frame
-top_frame = tk.Frame(window, width=frame_width*3, height=50)
+top_frame = tk.Frame(window, width=frame_max_width*3, height=50)
 top_frame.grid(row=0, columnspan=3) 
 
-# Platform frame
-platform_frame = tk.Frame(window, width=frame_width, height=frame_height)
-platform_frame.grid(row=1, column=0) 
-platform_frame.grid_propagate(0)
+# Platform fixed frame
+platform_frame_container = tk.Frame(window, width=frame_max_width, height=frame_max_height)
+platform_frame_container.grid(row=1, column=0) 
+platform_frame_container.grid_propagate(0)
 
-# INFO frame
-info_frame = tk.Frame(window, width=frame_width, height=frame_height)
+# INFO fixed frame
+info_frame = tk.Frame(window, width=frame_max_width, height=frame_max_height)
 info_frame.grid(row=1, column=1)
 info_frame.grid_propagate(0)
 
@@ -262,26 +332,18 @@ heuristic_label.grid(row=0, column=0)
 info_label = tk.Label(info_frame, text="- No info -", font = ("Arial", 10, "bold"), anchor="e", justify=tk.LEFT)
 info_label.grid(row=1, column=0)
 
-# GOAL frame
-goal_frame = tk.Frame(window, width=frame_width, height=frame_height)
-goal_frame.grid(row=1, column=2) 
-goal_frame.grid_propagate(0)
+# GOAL fixed frame
+goal_frame_container = tk.Frame(window, width=frame_max_width, height=frame_max_height)
+goal_frame_container.grid(row=1, column=2) 
+goal_frame_container.grid_propagate(0)
 
-# Buttons frame
-bottom_frame = tk.Frame(window, width=frame_width*3, height=50)
+# Buttons fixed frame
+bottom_frame = tk.Frame(window, width=frame_max_width*3, height=50)
 bottom_frame.grid(row=2, columnspan=3) 
 bottom_frame.grid_propagate(0)
 
 # Buttons
+add_config_platform_buttons()
 add_run_buttons()
 
-create_place_holders(platform_frame)
-create_platform(platform_frame)
-
-create_place_holders(goal_frame)
-create_platform(goal_frame)
-
-
 window.mainloop()
-
-

@@ -27,19 +27,24 @@ def a_estrella(root, heuristic=CHEBYSHEV, callback=None, max_iterations=None):
     children_expanded = 0
     t_start = datetime.now()
     def get_info_dict():
+        b = children_expanded/len(visitados) if len(visitados) > 0 else -1.0
+        cola_visitados = len(cola) / len(visitados) if len(visitados) > 0 else -1.0
         return {
             "Ciclos": i, 
             "Tiempo": f"{datetime.now() - t_start}",
             "Nodos en cola": len(cola), 
             "Nodos visitados": len(visitados), 
-            "Factor ramificacion": f"{(children_expanded/len(visitados)):.2f}"
+            "Visitados / En cola":  f"1 / {cola_visitados:.2f}" ,
+            "Factor ramificacion": f"{b:.2f}"
         }
+
 
     while cola and run_status:
         i += 1
         nodo = cola.pop(0)
         nodo.iteration = i
-
+        visitados.append(nodo.platform)
+        
         if nodo.is_goal():
             if callback:
                 info = get_info_dict()
@@ -56,8 +61,7 @@ def a_estrella(root, heuristic=CHEBYSHEV, callback=None, max_iterations=None):
             print(f"Ciclos: {i} - {nodo.name}")
             return nodo
 
-        visitados.append(nodo.platform)
-
+    
         def insert_in_order(nodo):
             inserted = False
             for pos in range(len(cola)):
