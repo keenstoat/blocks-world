@@ -1,7 +1,5 @@
 # Blocks World
 
-
-
 ## Historia y Descripcion de Blocks World
 
 Blocks World es uno de los problemas mas famosos de planificación con inteligencia artificial. 
@@ -25,7 +23,8 @@ Este tipo de problema se puede resolver siguiendo IA simbolica, en la que el dom
 
 > Un ejemplo mas popular de la aplicacion de IA simbolica es un sistema experto
 
-## Implementacion de `A*` para resolver Blocks World
+
+# Implementacion de `A*` para resolver Blocks World
 
 Para esta implementacion se utilizo el algoritmo de busqueda informada `A*` con cuatro diferentes distancias heuristicas.
 
@@ -48,3 +47,20 @@ Donde:
     - Hamming: el numero de bloques a cambiar para convertir el tablero inicial en el final.
 
 ![](readme/distancias-heuristicas.png)
+
+
+# Aplicacion e Interfaz
+
+La interfaz permite configurar una configuracion inicial en la que se puede definir la cantidad maxima de pilas de bloques, la cantidad maxima de bloques por pila, y la cantidad de bloques.
+
+El conjunto de bloques en el cuadro de la izquierda es la plataforma inicial, y el de la derecha es la plataforma final. 
+
+Ambos cuadros permiten mover bloques de manera aleatoria para reconfigurar el estado inicial y final a discrecion. Colocar un bloque encima de otro, sube todos los bloques para hacer espacio al nuevo bloque. La solucion siempre se realiza dentro de las restricciones del dominio del problema.
+
+Al dar click en alguno de los botones de la parte inferior se buscara la solucion utilizando la heuristica del boton seleccionado. 
+
+En la parte central se muestra los datos en tiempo real de la busqueda de `A*`.
+
+Al finalizar se muestra la animacion de los pasos encontrados para resolver el problema definido.
+
+![](readme/blocks-world-demo.gif)
