@@ -64,3 +64,7 @@ En la parte central se muestra los datos en tiempo real de la busqueda de `A*`.
 Al finalizar se muestra en la plataforma inicial la animacion de los pasos encontrados para resolver el problema definido, hasta que la plataforma inicial queda con la misma configuracion de la plataforma final.
 
 ![](readme/blocks-world-demo.gif)
+
+# Descripcion en Video
+
+Para una descripcion mas detallada ver: [Blocks World - A* - IA 2022](https://www.youtube.com/watch?v=9qYAZoMbwuc)
