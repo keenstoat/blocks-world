@@ -51,7 +51,7 @@ Donde:
 
 # Aplicacion e Interfaz
 
-La interfaz permite configurar una configuracion inicial en la que se puede definir la cantidad maxima de pilas de bloques, la cantidad maxima de bloques por pila, y la cantidad de bloques.
+La interfaz permite realizar una configuracion inicial en la que se puede definir la cantidad maxima de pilas de bloques, la cantidad maxima de bloques por pila, y la cantidad de bloques en juego.
 
 El conjunto de bloques en el cuadro de la izquierda es la plataforma inicial, y el de la derecha es la plataforma final. 
 
@@ -61,6 +61,6 @@ Al dar click en alguno de los botones de la parte inferior se buscara la solucio
 
 En la parte central se muestra los datos en tiempo real de la busqueda de `A*`.
 
-Al finalizar se muestra la animacion de los pasos encontrados para resolver el problema definido.
+Al finalizar se muestra en la plataforma inicial la animacion de los pasos encontrados para resolver el problema definido, hasta que la plataforma inicial queda con la misma configuracion de la plataforma final.
 
 ![](readme/blocks-world-demo.gif)
