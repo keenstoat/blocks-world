@@ -25,9 +25,9 @@ Este tipo de problema se puede resolver siguiendo IA simbolica, en la que el dom
 
 > Un ejemplo mas popular de la aplicacion de IA simbolica es un sistema experto
 
-## Implementacion de A* para resolver Blocks World
+## Implementacion de `A*` para resolver Blocks World
 
-Para esta implementacion se utilizo el algoritmo de busqueda informada A* con cuatro diferentes distancias heuristicas.
+Para esta implementacion se utilizo el algoritmo de busqueda informada `A*` con cuatro diferentes distancias heuristicas.
 
 La busqueda con `A*` utiliza una cola priorizada para mantener registro del siguiente nodo a visitar. 
 
